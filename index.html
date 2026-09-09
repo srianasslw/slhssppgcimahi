@@ -159,7 +159,7 @@
   .ring-panel{display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;}
   .ring-svg{width:150px;height:150px;}
   .ring-bg{fill:none; stroke:#EEF3F1; stroke-width:12;}
-  .ring-fg{fill:none; stroke:var(--brand); stroke-width:12; stroke-linecap:round; stroke-dasharray:0 999; transition:stroke-dasharray 1.1s cubic-bezier(.2,.9,.25,1);}
+  .ring-fg{fill:none; stroke:var(--amber); stroke-width:12; stroke-linecap:round; stroke-dasharray:0 999; transition:stroke-dasharray 1.1s cubic-bezier(.2,.9,.25,1);}
   .ring-center{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:24px; fill:var(--ink);}
   .ring-label{font-size:12.5px; color:var(--ink-soft); margin-top:10px;}
 
@@ -181,7 +181,7 @@
   <div class="topbar">
     <div class="brand-mark">
       <span class="dot"></span>
-      <span>KOTA CIMAHI</span>
+      <span>PEMERINTAH KOTA CIMAHI</span>
     </div>
     <div class="sync-pill" id="syncPill">
       <span class="led"></span>
@@ -192,7 +192,7 @@
   <div class="hero">
     <div class="eyebrow">Dashboard Pemantauan</div>
     <h1>SPPG Kota Cimahi</h1>
-    <p class="sub">Rekapitulasi status operasional dan Sertifikat Laik Higiene Sanitasi (SLHS) Satuan Pelayanan Pemenuhan Gizi se-Kota Cimahi.</p>
+    <p class="sub">Rekapitulasi status operasional Satuan Pelayanan Pemenuhan Gizi (SPPG) se-Kota Cimahi, tersinkron langsung dari spreadsheet sumber.</p>
     <svg class="steam" viewBox="0 0 140 22">
       <path d="M2 18 Q 12 4, 22 12 T 42 12 T 62 12 T 82 12 T 102 12 T 122 12 T 138 12"/>
     </svg>
@@ -225,9 +225,9 @@
 
     <div class="card c-slhs">
       <div class="icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.5 13.5 17 22l-5-3-5 3 1.5-8.5"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="10" y1="9" x2="10" y2="15"/><line x1="14" y1="9" x2="14" y2="15"/></svg>
       </div>
-      <div class="label">Jumlah SPPG Memiliki SLHS</div>
+      <div class="label">Jumlah SPPG Suspend</div>
       <div class="value"><span class="count-up" data-target="0" id="v-slhs">0</span></div>
     </div>
 
@@ -256,8 +256,8 @@
           <div class="num" id="bar-off-num">0</div>
         </div>
         <div class="row">
-          <div class="name">Memiliki SLHS</div>
-          <div class="track"><div class="fill brand" id="bar-slhs"></div></div>
+          <div class="name">Suspend</div>
+          <div class="track"><div class="fill amber" id="bar-slhs"></div></div>
           <div class="num" id="bar-slhs-num">0</div>
         </div>
       </div>
@@ -268,25 +268,25 @@
         <circle class="ring-fg" id="ringFg" cx="60" cy="60" r="50" transform="rotate(-90 60 60)"/>
         <text x="60" y="66" text-anchor="middle" class="ring-center" id="ringPct">0%</text>
       </svg>
-      <div class="ring-label">Capaian SLHS SPPG CIMAHI</div>
+      <div class="ring-label">Persentase SPPG Suspend</div>
     </div>
   </div>
 
   <footer>
     <span id="lastSync">Terakhir disinkronkan: —</span>
-    <a href="https://docs.google.com/spreadsheets/d/1lONLWxuatb9lpXplm4REec78l0_uBaAXf8RGYCi10xw/edit?gid=269834775#gid=269834775" target="_blank" rel="noopener">Buka Spreadsheet Sumber →</a>
+    <a href="https://docs.google.com/spreadsheets/d/1BAFmkxvYrd039ylIfkMYo5wRiVJyeMZK_TgWxBg9vgk/edit?gid=999878208#gid=999878208" target="_blank" rel="noopener">Buka Spreadsheet Sumber →</a>
   </footer>
 
 </div>
 
 <script>
-  const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXS72l57SaM9R0QBYmZiJokcrDF0TqZXka3G__UoJJO7cVZYN3ypOFaXoXTPT-DmAAX6sZMgmRG1L1/pub?gid=269834775&single=true&output=csv";
+  const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSpohcTHdBL7GNOolaGTAlzM-aqH97sFtFQbzNnnoeLKHz2eLgeISz_h3eSBtNVI11pSWUPoMfqs17D/pub?gid=999878208&single=true&output=csv";
   // Proxy CORS publik — dipakai karena respons CSV Google terkadang tidak menyertakan
   // header izin akses lintas-domain, sehingga fetch() langsung diblokir browser.
   const CORS_PROXY = "https://api.allorigins.win/raw?url=";
 
   // Fallback values (used if the live sheet cannot be reached, e.g. offline preview)
-  const FALLBACK = { total: 57, on: 57, off: 0, slhs: 39, benef: 135289 };
+  const FALLBACK = { total: 73, on: 61, off: 0, slhs: 0, benef: 144368 };
 
   function animateCount(el, target, duration = 900){
     const start = 0;
