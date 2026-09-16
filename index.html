@@ -192,7 +192,7 @@
   <div class="hero">
     <div class="eyebrow">Dashboard Pemantauan</div>
     <h1>SPPG Kota Cimahi</h1>
-    <p class="sub">Rekapitulasi status operasional Satuan Pelayanan Pemenuhan Gizi (SPPG) se-Kota Cimahi</p>
+    <p class="sub">Rekapitulasi status operasional Satuan Pelayanan Pemenuhan Gizi (SPPG) se-Kota Cimahi, tersinkron langsung dari spreadsheet sumber.</p>
     <svg class="steam" viewBox="0 0 140 22">
       <path d="M2 18 Q 12 4, 22 12 T 42 12 T 62 12 T 82 12 T 102 12 T 122 12 T 138 12"/>
     </svg>
@@ -378,21 +378,24 @@
   }
 
   async function fetchCsvText(){
-    const bust = '&_ts=' + Date.now(); // cache-buster: memaksa proxy & CDN Google mengambil versi terbaru
-    // Percobaan 1: lewat proxy CORS (paling andal untuk dipanggil dari file lokal / domain lain)
+    const bust = '&_ts=' + Date.now(); // cache-buster: memaksa mengambil versi terbaru, bukan cache lama
+    // Percobaan 1: akses langsung ke Google (sekarang situs sudah di domain https asli,
+    // bukan file:// lagi, jadi CORS dari Google biasanya sudah diizinkan)
     try {
-      const res = await fetch(CORS_PROXY + encodeURIComponent(CSV_URL + bust), { cache: 'no-store' });
-      if (res.ok) {
-        const text = await res.text();
+      const res1 = await fetch(CSV_URL + bust, { cache: 'no-store' });
+      if (res1.ok) {
+        const text = await res1.text();
         if (text && text.trim().length > 0) return text;
       }
     } catch (e) {
-      console.warn('Proxy CORS gagal, mencoba akses langsung:', e);
+      console.warn('Akses langsung gagal, mencoba lewat proxy CORS:', e);
     }
-    // Percobaan 2: akses langsung tanpa proxy (untuk kondisi yang sudah mengizinkan CORS)
-    const res2 = await fetch(CSV_URL + bust, { cache: 'no-store' });
+    // Percobaan 2: lewat proxy CORS sebagai cadangan terakhir
+    const res2 = await fetch(CORS_PROXY + encodeURIComponent(CSV_URL + bust), { cache: 'no-store' });
     if (!res2.ok) throw new Error('Gagal memuat sheet (status ' + res2.status + ')');
-    return await res2.text();
+    const text2 = await res2.text();
+    if (!text2 || text2.trim().length === 0) throw new Error('Respons proxy kosong');
+    return text2;
   }
 
   async function loadData(){
