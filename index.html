@@ -159,7 +159,7 @@
   .ring-panel{display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;}
   .ring-svg{width:150px;height:150px;}
   .ring-bg{fill:none; stroke:#EEF3F1; stroke-width:12;}
-  .ring-fg{fill:none; stroke:var(--amber); stroke-width:12; stroke-linecap:round; stroke-dasharray:0 999; transition:stroke-dasharray 1.1s cubic-bezier(.2,.9,.25,1);}
+  .ring-fg{fill:none; stroke:var(--brand); stroke-width:12; stroke-linecap:round; stroke-dasharray:0 999; transition:stroke-dasharray 1.1s cubic-bezier(.2,.9,.25,1);}
   .ring-center{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:24px; fill:var(--ink);}
   .ring-label{font-size:12.5px; color:var(--ink-soft); margin-top:10px;}
 
@@ -192,7 +192,7 @@
   <div class="hero">
     <div class="eyebrow">Dashboard Pemantauan</div>
     <h1>SPPG Kota Cimahi</h1>
-    <p class="sub">Rekapitulasi status operasional Satuan Pelayanan Pemenuhan Gizi (SPPG) se-Kota Cimahi, tersinkron langsung dari spreadsheet sumber.</p>
+    <p class="sub">Rekapitulasi status operasional Satuan Pelayanan Pemenuhan Gizi (SPPG) se-Kota Cimahi</p>
     <svg class="steam" viewBox="0 0 140 22">
       <path d="M2 18 Q 12 4, 22 12 T 42 12 T 62 12 T 82 12 T 102 12 T 122 12 T 138 12"/>
     </svg>
@@ -228,7 +228,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="10" y1="9" x2="10" y2="15"/><line x1="14" y1="9" x2="14" y2="15"/></svg>
       </div>
       <div class="label">Jumlah SPPG Suspend</div>
-      <div class="value"><span class="count-up" data-target="0" id="v-slhs">0</span></div>
+      <div class="value"><span class="count-up" data-target="0" id="v-suspend">0</span></div>
     </div>
 
     <div class="card c-benef">
@@ -257,7 +257,12 @@
         </div>
         <div class="row">
           <div class="name">Suspend</div>
-          <div class="track"><div class="fill amber" id="bar-slhs"></div></div>
+          <div class="track"><div class="fill amber" id="bar-suspend"></div></div>
+          <div class="num" id="bar-suspend-num">0</div>
+        </div>
+        <div class="row">
+          <div class="name">Memiliki SLHS</div>
+          <div class="track"><div class="fill brand" id="bar-slhs"></div></div>
           <div class="num" id="bar-slhs-num">0</div>
         </div>
       </div>
@@ -268,7 +273,8 @@
         <circle class="ring-fg" id="ringFg" cx="60" cy="60" r="50" transform="rotate(-90 60 60)"/>
         <text x="60" y="66" text-anchor="middle" class="ring-center" id="ringPct">0%</text>
       </svg>
-      <div class="ring-label">Persentase SPPG Suspend</div>
+      <div class="ring-label">Persentase SPPG Memiliki SLHS</div>
+      <div class="ring-label" id="ringSub" style="margin-top:2px; font-weight:600; color:var(--ink);"></div>
     </div>
   </div>
 
@@ -286,7 +292,7 @@
   const CORS_PROXY = "https://api.allorigins.win/raw?url=";
 
   // Fallback values (used if the live sheet cannot be reached, e.g. offline preview)
-  const FALLBACK = { total: 73, on: 61, off: 0, slhs: 0, benef: 144368 };
+  const FALLBACK = { total: 73, on: 61, off: 0, suspend: 0, benef: 144368, slhs: 0 };
 
   function animateCount(el, target, duration = 900){
     const start = 0;
@@ -305,18 +311,21 @@
     animateCount(document.getElementById('v-total'), d.total);
     animateCount(document.getElementById('v-on'), d.on);
     animateCount(document.getElementById('v-off'), d.off);
-    animateCount(document.getElementById('v-slhs'), d.slhs);
+    animateCount(document.getElementById('v-suspend'), d.suspend);
     animateCount(document.getElementById('v-benef'), d.benef);
 
     const pctOn = d.total ? Math.round((d.on / d.total) * 100) : 0;
     const pctOff = d.total ? Math.round((d.off / d.total) * 100) : 0;
+    const pctSuspend = d.total ? Math.round((d.suspend / d.total) * 100) : 0;
     const pctSlhs = d.total ? Math.round((d.slhs / d.total) * 100) : 0;
 
     document.getElementById('bar-on').style.width = pctOn + '%';
     document.getElementById('bar-off').style.width = pctOff + '%';
+    document.getElementById('bar-suspend').style.width = pctSuspend + '%';
     document.getElementById('bar-slhs').style.width = pctSlhs + '%';
     document.getElementById('bar-on-num').textContent = d.on;
     document.getElementById('bar-off-num').textContent = d.off;
+    document.getElementById('bar-suspend-num').textContent = d.suspend;
     document.getElementById('bar-slhs-num').textContent = d.slhs;
 
     const circumference = 2 * Math.PI * 50;
@@ -325,6 +334,7 @@
       ringFg.style.strokeDasharray = `${(pctSlhs/100) * circumference} ${circumference}`;
     }, 100);
     document.getElementById('ringPct').textContent = pctSlhs + '%';
+    document.getElementById('ringSub').textContent = `${d.slhs.toLocaleString('id-ID')} dari ${d.total.toLocaleString('id-ID')} SPPG`;
   }
 
   function setSyncState(state, message){
@@ -368,9 +378,10 @@
   }
 
   async function fetchCsvText(){
+    const bust = '&_ts=' + Date.now(); // cache-buster: memaksa proxy & CDN Google mengambil versi terbaru
     // Percobaan 1: lewat proxy CORS (paling andal untuk dipanggil dari file lokal / domain lain)
     try {
-      const res = await fetch(CORS_PROXY + encodeURIComponent(CSV_URL), { cache: 'no-store' });
+      const res = await fetch(CORS_PROXY + encodeURIComponent(CSV_URL + bust), { cache: 'no-store' });
       if (res.ok) {
         const text = await res.text();
         if (text && text.trim().length > 0) return text;
@@ -379,7 +390,7 @@
       console.warn('Proxy CORS gagal, mencoba akses langsung:', e);
     }
     // Percobaan 2: akses langsung tanpa proxy (untuk kondisi yang sudah mengizinkan CORS)
-    const res2 = await fetch(CSV_URL, { cache: 'no-store' });
+    const res2 = await fetch(CSV_URL + bust, { cache: 'no-store' });
     if (!res2.ok) throw new Error('Gagal memuat sheet (status ' + res2.status + ')');
     return await res2.text();
   }
@@ -392,11 +403,12 @@
 
       const dataCells = parseCsvLine(lines[1]); // baris ke-2 = data (baris ke-1 = header)
       const d = {
-        total: toNumber(dataCells[0], FALLBACK.total),
-        on:    toNumber(dataCells[1], FALLBACK.on),
-        off:   toNumber(dataCells[2], FALLBACK.off),
-        slhs:  toNumber(dataCells[3], FALLBACK.slhs),
-        benef: toNumber(dataCells[4], FALLBACK.benef),
+        total:   toNumber(dataCells[0], FALLBACK.total),
+        on:      toNumber(dataCells[1], FALLBACK.on),
+        off:     toNumber(dataCells[2], FALLBACK.off),
+        suspend: toNumber(dataCells[3], FALLBACK.suspend),
+        benef:   toNumber(dataCells[4], FALLBACK.benef),
+        slhs:    toNumber(dataCells[5], FALLBACK.slhs),
       };
       renderData(d);
       setSyncState('live', 'Tersinkron dari spreadsheet');
