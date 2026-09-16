@@ -286,7 +286,11 @@
 </div>
 
 <script>
-  const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSpohcTHdBL7GNOolaGTAlzM-aqH97sFtFQbzNnnoeLKHz2eLgeISz_h3eSBtNVI11pSWUPoMfqs17D/pub?gid=999878208&single=true&output=csv";
+  const SHEET_ID = "1BAFmkxvYrd039ylIfkMYo5wRiVJyeMZK_TgWxBg9vgk";
+  const GID = "999878208";
+  // Endpoint gviz membaca LANGSUNG dari sheet yang sedang aktif (bukan salinan hasil "Publish to web"),
+  // jadi tidak ada jeda cache terpisah — hanya butuh sheet di-share "Anyone with the link: Viewer".
+  const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
   // Proxy CORS publik — dipakai karena respons CSV Google terkadang tidak menyertakan
   // header izin akses lintas-domain, sehingga fetch() langsung diblokir browser.
   const CORS_PROXY = "https://api.allorigins.win/raw?url=";
