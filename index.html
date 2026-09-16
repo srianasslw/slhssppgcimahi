@@ -354,24 +354,31 @@
     document.getElementById('lastSync').textContent = `Terakhir disinkronkan: ${fmt} WIB`;
   }
 
-  function parseCsvLine(line){
-    // parser CSV sederhana yang tetap menangani nilai berkoma-dalam-kutip
-    const cells = [];
+  function parseCsvFull(text){
+    // Parser CSV lengkap: menangani koma di dalam kutip DAN newline di dalam kutip
+    // (header multi-baris seperti "Jumlah SPPG\nKota Cimahi" tidak boleh dianggap baris baru).
+    const rows = [];
+    let row = [];
     let cur = '';
     let inQuotes = false;
-    for (let i = 0; i < line.length; i++){
-      const ch = line[i];
-      if (ch === '"'){
-        inQuotes = !inQuotes;
-      } else if (ch === ',' && !inQuotes){
-        cells.push(cur);
-        cur = '';
+    for (let i = 0; i < text.length; i++){
+      const ch = text[i];
+      const next = text[i + 1];
+      if (inQuotes){
+        if (ch === '"' && next === '"'){ cur += '"'; i++; }
+        else if (ch === '"'){ inQuotes = false; }
+        else { cur += ch; }
       } else {
-        cur += ch;
+        if (ch === '"'){ inQuotes = true; }
+        else if (ch === ','){ row.push(cur); cur = ''; }
+        else if (ch === '\r'){ /* skip, \n akan menutup baris */ }
+        else if (ch === '\n'){ row.push(cur); cur = ''; rows.push(row); row = []; }
+        else { cur += ch; }
       }
     }
-    cells.push(cur);
-    return cells.map(c => c.trim());
+    // baris terakhir (tidak diakhiri newline)
+    if (cur.length > 0 || row.length > 0){ row.push(cur); rows.push(row); }
+    return rows.filter(r => r.some(c => c.trim().length > 0));
   }
 
   function toNumber(v, fallback){
@@ -405,10 +412,10 @@
   async function loadData(){
     try {
       const text = await fetchCsvText();
-      const lines = text.trim().split(/\r?\n/);
-      if (lines.length < 2) throw new Error('Baris data tidak ditemukan di sheet');
+      const rows = parseCsvFull(text);
+      if (rows.length < 2) throw new Error('Baris data tidak ditemukan di sheet');
 
-      const dataCells = parseCsvLine(lines[1]); // baris ke-2 = data (baris ke-1 = header)
+      const dataCells = rows[rows.length - 1].map(c => c.trim()); // baris data = baris terakhir hasil parse
       const d = {
         total:   toNumber(dataCells[0], FALLBACK.total),
         on:      toNumber(dataCells[1], FALLBACK.on),
